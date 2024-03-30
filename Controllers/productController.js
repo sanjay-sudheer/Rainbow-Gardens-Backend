@@ -1,4 +1,5 @@
 require("dotenv").config();
+
 const aws = require("aws-sdk");
 const dynamoDB = require('../models/contact'); // Ensure this is correctly pointing to your DynamoDB model
 
@@ -49,7 +50,7 @@ const generateRandomNumber = () => {
 // Updated createProduct function to include image upload
 const createProduct = async (req, res) => {
   try {
-    const { plantName, plantSmallDescription, plantPrice, plantLongDescription, plantDescriptionForCard } = req.body;
+    const { plantName, plantSmallDescription, plantPrice, plantLongDescription, plantDescriptionForCard, category } = req.body;
 
     const Pno = generateRandomNumber();
 
@@ -65,6 +66,7 @@ const createProduct = async (req, res) => {
         plantPrice,
         plantLongDescription,
         plantDescriptionForCard,
+        category,
         images: imageUrls, // Store image URLs from the upload
       },
     };
@@ -133,6 +135,40 @@ const getAllProducts = async (req, res) => {
 
 
 
+// Get product by name
+const getProductByName = async (req, res) => {
+  try {
+    // Extract the plantName from the request parameters
+    const { plantName } = req.params;
+
+    // Define parameters for DynamoDB scan operation
+    const params = {
+      TableName: process.env.DYNAMODB_TABLE_NAME_PRODUCTS,
+      FilterExpression: 'plantName = :name',
+      ExpressionAttributeValues: {
+        ':name': plantName
+      }
+    };
+
+    // Retrieve the product from DynamoDB using scan operation
+    const data = await dynamoDB.scan(params).promise();
+
+    // Check if any matching products were found
+    if (data.Items.length === 0) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    // Since there can be multiple products with the same name, return all matching products
+    res.status(200).json(data.Items);
+  } catch (error) {
+    console.error('Error fetching product:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+
+
+
   //update product details
   const updateProduct = async (req, res) => {
     try {
@@ -197,5 +233,64 @@ const getAllProducts = async (req, res) => {
     }
   };
 
-module.exports = {createProduct, getAllProducts, getProductByPno, updateProduct, deleteProduct };
+
+// Filter products by price and category
+const filterProducts = async (req, res) => {
+  try {
+    // Extract price and category query parameters
+    const { price, category } = req.query;
+
+    // Define the parameters for DynamoDB query
+    let params = {
+      TableName: process.env.DYNAMODB_TABLE_NAME_PRODUCTS,
+    };
+
+    // Construct the filter expression based on the provided query parameters
+    let filterExpression = '';
+    let expressionAttributeValues = {};
+
+    if (price && category) {
+      filterExpression = 'plantPrice <= :price AND category = :category';
+      expressionAttributeValues = {
+        ':price': Number(price),
+        ':category': category,
+      };
+    } else if (price) {
+      filterExpression = 'plantPrice <= :price';
+      expressionAttributeValues = {
+        ':price': Number(price),
+      };
+    } else if (category) {
+      filterExpression = 'category = :category';
+      expressionAttributeValues = {
+        ':category': category,
+      };
+    } else {
+      // If neither price nor category is provided, return bad request
+      return res.status(400).json({ error: 'Please provide price and/or category query parameters' });
+    }
+
+    // Assign filter expression and expression attribute values to params
+    params = {
+      ...params,
+      FilterExpression: filterExpression,
+      ExpressionAttributeValues: expressionAttributeValues,
+    };
+
+    // Perform the scan operation on DynamoDB with the constructed params
+    const data = await dynamoDB.scan(params).promise();
+
+    // Extract the items from the response
+    const products = data.Items;
+
+    // Return the filtered products as a JSON response
+    res.status(200).json(products);
+  } catch (error) {
+    console.error('Error filtering products:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+module.exports = { createProduct, getAllProducts, getProductByPno, getProductByName, updateProduct, deleteProduct, filterProducts };
+
 

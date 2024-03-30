@@ -21,11 +21,12 @@ router.get('/getcontact', contactController.getAllContacts);
 
 // Product APIs
 router.post('/createproduct', upload.array('images'), productController.createProduct);
-// router.post('/createproduct', upload.array('images'), productController.createProduct);
 router.get('/getproduct', productController.getAllProducts);
-router.get('/filterproduct/:Pno', productController.getProductByPno);
+router.get('/getplantname/:plantName', productController.getProductByName);
+router.get('/getproduct/:Pno', productController.getProductByPno);
 router.put('/updateproducts/:Pno', productController.updateProduct);
 router.delete('/deleteproducts/:Pno', productController.deleteProduct);
+router.get('/filterproducts/', productController.filterProducts);
 
 
 
