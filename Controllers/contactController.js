@@ -2,11 +2,12 @@ const dynamoDB = require('../models/contact');
 
 const createContact = async (req, res) => {
   try {
-    const {firstName, lastName, email, mobileNumber, message } = req.body;
+    const { Sno, firstName, lastName, email, mobileNumber, message } = req.body;
 
     const params = {
       TableName: process.env.DYNAMODB_TABLE_NAME_CONTACT,
       Item: {
+        Sno: Sno,
         firstName,
         lastName,
         email,
