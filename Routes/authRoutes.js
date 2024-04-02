@@ -10,6 +10,7 @@ const contactController = require('../Controllers/contactController');
 const productController = require('../Controllers/productController');
 const cartController = require('../Controllers/cartController');
 const loginController = require('../Controllers/loginController');
+const addtocart = require('../Controllers/addcartController')
 
 
 
@@ -26,11 +27,12 @@ router.get('/getplantname/:plantName', productController.getProductByName);
 router.get('/getproduct/:Pno', productController.getProductByPno);
 router.put('/updateproducts/:Pno', productController.updateProduct);
 router.delete('/deleteproducts/:Pno', productController.deleteProduct);
-router.get('/filterproducts/', productController.filterProducts);
 
 
 
 // Cart APIs
+router.get('/additemtocart', addtocart.getAddCartPlantDetails)
+router.get('/additemtocart/:Pno', addtocart.getaddcartPlantDetailsByPno)
 router.post('/addtocart', cartController.addToCart);
 router.get('/getAllCartItems', cartController.getAllCartItems);
 

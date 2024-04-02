@@ -120,7 +120,7 @@ const getAllProducts = async (req, res) => {
       // Retrieve the product from DynamoDB
       const data = await dynamoDB.get(params).promise();
   
-      // Check if the product exists
+      // Check if the product exisnts
       if (!data.Item) {
         return res.status(404).json({ error: 'Product not found' });
       }
@@ -234,63 +234,8 @@ const getProductByName = async (req, res) => {
   };
 
 
-// Filter products by price and category
-const filterProducts = async (req, res) => {
-  try {
-    // Extract price and category query parameters
-    const { price, category } = req.query;
 
-    // Define the parameters for DynamoDB query
-    let params = {
-      TableName: process.env.DYNAMODB_TABLE_NAME_PRODUCTS,
-    };
 
-    // Construct the filter expression based on the provided query parameters
-    let filterExpression = '';
-    let expressionAttributeValues = {};
-
-    if (price && category) {
-      filterExpression = 'plantPrice <= :price AND category = :category';
-      expressionAttributeValues = {
-        ':price': Number(price),
-        ':category': category,
-      };
-    } else if (price) {
-      filterExpression = 'plantPrice <= :price';
-      expressionAttributeValues = {
-        ':price': Number(price),
-      };
-    } else if (category) {
-      filterExpression = 'category = :category';
-      expressionAttributeValues = {
-        ':category': category,
-      };
-    } else {
-      // If neither price nor category is provided, return bad request
-      return res.status(400).json({ error: 'Please provide price and/or category query parameters' });
-    }
-
-    // Assign filter expression and expression attribute values to params
-    params = {
-      ...params,
-      FilterExpression: filterExpression,
-      ExpressionAttributeValues: expressionAttributeValues,
-    };
-
-    // Perform the scan operation on DynamoDB with the constructed params
-    const data = await dynamoDB.scan(params).promise();
-
-    // Extract the items from the response
-    const products = data.Items;
-
-    // Return the filtered products as a JSON response
-    res.status(200).json(products);
-  } catch (error) {
-    console.error('Error filtering products:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-};
-
-module.exports = { createProduct, getAllProducts, getProductByPno, getProductByName, updateProduct, deleteProduct, filterProducts };
+module.exports = { createProduct, getAllProducts, getProductByPno, getProductByName, updateProduct, deleteProduct };
 
 
