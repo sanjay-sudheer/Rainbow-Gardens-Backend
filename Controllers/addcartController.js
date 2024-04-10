@@ -8,7 +8,7 @@ aws.config.update({
 });
 
 // Function to retrieve plantName, plantPrice, and URL of the first image from the database
-const getAddCartPlantDetails = async (req, res) => {
+const getAddCartPlantDetails = async (req, res, email) => {
   try {
     // Define parameters for DynamoDB scan operation
     const params = {
@@ -23,6 +23,7 @@ const getAddCartPlantDetails = async (req, res) => {
 
     // Extract plantName, plantPrice, and URL of the first image for each product
     const plantDetails = products.map(product => ({
+      Eno: { S: email },
       Pno: product.Pno,
       plantName: product.plantName,
       plantPrice: product.plantPrice,
@@ -37,8 +38,9 @@ const getAddCartPlantDetails = async (req, res) => {
   }
 };
 
+
 // Function to retrieve plantName, plantPrice, and URL of the first image by Pno
-const getaddcartPlantDetailsByPno= async (req, res) => {
+const getaddcartPlantDetailsByPno = async (req, res) => {
   try {
     // Extract the Pno from the request parameters
     const { Pno } = req.params;
@@ -67,6 +69,9 @@ const getaddcartPlantDetailsByPno= async (req, res) => {
       imageUrl: (data.Item.images && data.Item.images.length > 0) ? data.Item.images[0] : null
     };
 
+    // Add the retrieved item to the database
+    await addPlantDetailsToDatabase(email, plantDetails);
+
     // Return the plant details as a JSON response
     res.status(200).json(plantDetails);
   } catch (error) {
@@ -75,4 +80,29 @@ const getaddcartPlantDetailsByPno= async (req, res) => {
   }
 };
 
-module.exports = { getAddCartPlantDetails, getaddcartPlantDetailsByPno };
+
+// Function to add a new item to the DynamoDB table
+const addPlantDetailsToCart = async (plantDetails) => {
+  try {
+    // Ensure that plantDetails contains the necessary properties for DynamoDB
+    const item = {
+      Pno: { S: plantDetails.Pno },
+      plantName: { S: plantDetails.plantName },
+      plantPrice: { N: plantDetails.plantPrice.toString() }
+      // Add other properties as needed
+    };
+
+    // Create parameters for DynamoDB put operation
+    const params = {
+      TableName: process.env.DYNAMODB_TABLE_CARTADD, // Use the target DynamoDB table
+      Item: item
+    };
+
+    // Put the item into DynamoDB table
+    await dynamoDB.putItem(params).promise();
+  } catch (error) {
+    console.error('Error adding plant details to cart:', error);
+    throw error; // Rethrow the error to handle it in the calling function if necessary
+  }
+};
+module.exports = { getAddCartPlantDetails, getaddcartPlantDetailsByPno, addPlantDetailsToCart };
