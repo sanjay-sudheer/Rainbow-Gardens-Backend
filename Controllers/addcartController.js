@@ -70,7 +70,7 @@ const getaddcartPlantDetailsByPno = async (req, res) => {
     };
 
     // Add the retrieved item to the database
-    await addPlantDetailsToDatabase(email, plantDetails);
+    await addPlantDetailsToCart([plantDetails]);
 
     // Return the plant details as a JSON response
     res.status(200).json(plantDetails);
@@ -81,28 +81,39 @@ const getaddcartPlantDetailsByPno = async (req, res) => {
 };
 
 
-// Function to add a new item to the DynamoDB table
-const addPlantDetailsToCart = async (plantDetails) => {
+// Function to add multiple items to the DynamoDB table
+const addPlantDetailsToCart = async (plantDetailsArray) => {
   try {
-    // Ensure that plantDetails contains the necessary properties for DynamoDB
-    const item = {
-      Pno: { S: plantDetails.Pno },
-      plantName: { S: plantDetails.plantName },
-      plantPrice: { N: plantDetails.plantPrice.toString() }
-      // Add other properties as needed
-    };
+    // Ensure that plantDetailsArray is an array
+    if (!Array.isArray(plantDetailsArray)) {
+      throw new Error('Plant details must be provided as an array');
+    }
 
-    // Create parameters for DynamoDB put operation
+    // Create an array to store the items to be added to DynamoDB
+    const items = plantDetailsArray.map(plantDetails => {
+      return {
+        Pno: { S: plantDetails.Pno },
+        plantName: { S: plantDetails.plantName },
+        plantPrice: { N: plantDetails.plantPrice.toString() }
+        // Add other properties as needed
+      };
+    });
+
+    // Create parameters for DynamoDB batchWrite operation
     const params = {
-      TableName: process.env.DYNAMODB_TABLE_CARTADD, // Use the target DynamoDB table
-      Item: item
+      RequestItems: {
+        [process.env.DYNAMODB_TABLE_CARTADD]: items.map(Item => ({
+          PutRequest: { Item }
+        }))
+      }
     };
 
-    // Put the item into DynamoDB table
-    await dynamoDB.putItem(params).promise();
+    // Batch write the items into DynamoDB table
+    await dynamoDB.batchWrite(params).promise();
   } catch (error) {
     console.error('Error adding plant details to cart:', error);
     throw error; // Rethrow the error to handle it in the calling function if necessary
   }
 };
+
 module.exports = { getAddCartPlantDetails, getaddcartPlantDetailsByPno, addPlantDetailsToCart };
