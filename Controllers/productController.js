@@ -1,7 +1,7 @@
 require("dotenv").config();
 
 const aws = require("aws-sdk");
-const dynamoDB = require('../models/contact'); // Ensure this is correctly pointing to your DynamoDB model
+const dynamoDB = require("../models/contact"); // Ensure this is correctly pointing to your DynamoDB model
 
 aws.config.update({
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
@@ -50,7 +50,14 @@ const generateRandomNumber = () => {
 // Updated createProduct function to include image upload
 const createProduct = async (req, res) => {
   try {
-    const { plantName, plantSmallDescription, plantPrice, plantLongDescription, plantDescriptionForCard, category } = req.body;
+    const {
+      plantName,
+      plantSmallDescription,
+      plantPrice,
+      plantLongDescription,
+      plantDescriptionForCard,
+      category,
+    } = req.body;
 
     const Pno = generateRandomNumber();
 
@@ -73,67 +80,65 @@ const createProduct = async (req, res) => {
 
     await dynamoDB.put(params).promise();
 
-    res.status(201).json({ message: 'Product created successfully', product: params.Item });
+    res
+      .status(201)
+      .json({ message: "Product created successfully", product: params.Item });
   } catch (error) {
-    console.error('Error creating product:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    console.error("Error creating product:", error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
-
 //get API
 const getAllProducts = async (req, res) => {
-    try {
-      const params = {
-        TableName: process.env.DYNAMODB_TABLE_NAME_PRODUCTS,
-      };
-  
-      // Retrieve all items from the DynamoDB table
-      const data = await dynamoDB.scan(params).promise();
-  
-      // Extract the items from the response
-      const products = data.Items;
-  
-      // Return the products as a JSON response
-      res.status(200).json(products);
-    } catch (error) {
-      console.error('Error fetching products:', error);
-      res.status(500).json({ error: 'Internal Server Error' });
+  try {
+    const params = {
+      TableName: process.env.DYNAMODB_TABLE_NAME_PRODUCTS,
+    };
+
+    // Retrieve all items from the DynamoDB table
+    const data = await dynamoDB.scan(params).promise();
+
+    // Extract the items from the response
+    const products = data.Items;
+
+    // Return the products as a JSON response
+    res.status(200).json(products);
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+//get product using Pno Number
+const getProductByPno = async (req, res) => {
+  try {
+    // Extract the Pno from the request parameters
+    const { Pno } = req.params;
+
+    // Define parameters for DynamoDB query
+    const params = {
+      TableName: process.env.DYNAMODB_TABLE_NAME_PRODUCTS,
+      Key: {
+        Pno: Pno,
+      },
+    };
+
+    // Retrieve the product from DynamoDB
+    const data = await dynamoDB.get(params).promise();
+
+    // Check if the product exisnts
+    if (!data.Item) {
+      return res.status(404).json({ error: "Product not found" });
     }
-  };
 
-
-  //get product using Pno Number
-  const getProductByPno = async (req, res) => {
-    try {
-      // Extract the Pno from the request parameters
-      const { Pno } = req.params;
-  
-      // Define parameters for DynamoDB query
-      const params = {
-        TableName: process.env.DYNAMODB_TABLE_NAME_PRODUCTS,
-        Key: {
-          Pno: Pno
-        }
-      };
-  
-      // Retrieve the product from DynamoDB
-      const data = await dynamoDB.get(params).promise();
-  
-      // Check if the product exisnts
-      if (!data.Item) {
-        return res.status(404).json({ error: 'Product not found' });
-      }
-  
-      // Return the product as a JSON response
-      res.status(200).json(data.Item);
-    } catch (error) {
-      console.error('Error fetching product:', error);
-      res.status(500).json({ error: 'Internal Server Error' });
-    }
-  };
-
-
+    // Return the product as a JSON response
+    res.status(200).json(data.Item);
+  } catch (error) {
+    console.error("Error fetching product:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
 
 // Get product by name
 const getProductByName = async (req, res) => {
@@ -144,10 +149,10 @@ const getProductByName = async (req, res) => {
     // Define parameters for DynamoDB scan operation
     const params = {
       TableName: process.env.DYNAMODB_TABLE_NAME_PRODUCTS,
-      FilterExpression: 'plantName = :name',
+      FilterExpression: "plantName = :name",
       ExpressionAttributeValues: {
-        ':name': plantName
-      }
+        ":name": plantName,
+      },
     };
 
     // Retrieve the product from DynamoDB using scan operation
@@ -155,87 +160,91 @@ const getProductByName = async (req, res) => {
 
     // Check if any matching products were found
     if (data.Items.length === 0) {
-      return res.status(404).json({ error: 'Product not found' });
+      return res.status(404).json({ error: "Product not found" });
     }
 
     // Since there can be multiple products with the same name, return all matching products
     res.status(200).json(data.Items);
   } catch (error) {
-    console.error('Error fetching product:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    console.error("Error fetching product:", error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
+//update product details
+const updateProduct = async (req, res) => {
+  try {
+    // Extract the Pno from the request parameters
+    const { Pno } = req.params;
 
+    // Extract updated product details from the request body
+    const {
+      plantName,
+      plantSmallDescription,
+      plantPrice,
+      plantLongDescription,
+      plantDescriptionForCard,
+    } = req.body;
 
+    // Define parameters for the DynamoDB update operation
+    const params = {
+      TableName: process.env.DYNAMODB_TABLE_NAME_PRODUCTS,
+      Key: {
+        Pno: Pno,
+      },
+      UpdateExpression:
+        "set plantName = :n, plantSmallDescription = :sd, plantPrice = :p, plantLongDescription = :ld, plantDescriptionForCard = :dc",
+      ExpressionAttributeValues: {
+        ":n": plantName,
+        ":sd": plantSmallDescription,
+        ":p": plantPrice,
+        ":ld": plantLongDescription,
+        ":dc": plantDescriptionForCard,
+      },
+      ReturnValues: "UPDATED_NEW",
+    };
 
-  //update product details
-  const updateProduct = async (req, res) => {
-    try {
-      // Extract the Pno from the request parameters
-      const { Pno } = req.params;
-  
-      // Extract updated product details from the request body
-      const { plantName, plantSmallDescription, plantPrice, plantLongDescription, plantDescriptionForCard } = req.body;
-  
-      // Define parameters for the DynamoDB update operation
-      const params = {
-        TableName: process.env.DYNAMODB_TABLE_NAME_PRODUCTS,
-        Key: {
-          Pno: Pno
-        },
-        UpdateExpression: 'set plantName = :n, plantSmallDescription = :sd, plantPrice = :p, plantLongDescription = :ld, plantDescriptionForCard = :dc',
-        ExpressionAttributeValues: {
-          ':n': plantName,
-          ':sd': plantSmallDescription,
-          ':p': plantPrice,
-          ':ld': plantLongDescription,
-          ':dc': plantDescriptionForCard
-        },
-        ReturnValues: 'UPDATED_NEW'
-      };
-  
-      // Perform the update operation on DynamoDB
-      const data = await dynamoDB.update(params).promise();
-  
-      // Return the updated product as a JSON response
-      res.status(200).json(data.Attributes);
-    } catch (error) {
-      console.error('Error updating product:', error);
-      res.status(500).json({ error: 'Internal Server Error' });
-    }
-  };
-  
+    // Perform the update operation on DynamoDB
+    const data = await dynamoDB.update(params).promise();
 
+    // Return the updated product as a JSON response
+    res.status(200).json(data.Attributes);
+  } catch (error) {
+    console.error("Error updating product:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
 
-  //Delete a product 
-  const deleteProduct = async (req, res) => {
-    try {
-      // Extract the Pno from the request parameters
-      const { Pno } = req.params;
-  
-      // Define parameters for the DynamoDB delete operation
-      const params = {
-        TableName: process.env.DYNAMODB_TABLE_NAME_PRODUCTS,
-        Key: {
-          Pno: Pno
-        }
-      };
-  
-      // Perform the delete operation on DynamoDB
-      await dynamoDB.delete(params).promise();
-  
-      // Return a success message as a JSON response
-      res.status(200).json({ message: 'Product deleted successfully' });
-    } catch (error) {
-      console.error('Error deleting product:', error);
-      res.status(500).json({ error: 'Internal Server Error' });
-    }
-  };
+//Delete a product
+const deleteProduct = async (req, res) => {
+  try {
+    // Extract the Pno from the request parameters
+    const { Pno } = req.params;
 
+    // Define parameters for the DynamoDB delete operation
+    const params = {
+      TableName: process.env.DYNAMODB_TABLE_NAME_PRODUCTS,
+      Key: {
+        Pno: Pno,
+      },
+    };
 
+    // Perform the delete operation on DynamoDB
+    await dynamoDB.delete(params).promise();
 
+    // Return a success message as a JSON response
+    res.status(200).json({ message: "Product deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting product:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
 
-module.exports = { createProduct, getAllProducts, getProductByPno, getProductByName, updateProduct, deleteProduct };
-
-
+module.exports = {
+  createProduct,
+  getAllProducts,
+  getProductByPno,
+  getProductByName,
+  updateProduct,
+  deleteProduct,
+};
