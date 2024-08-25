@@ -153,6 +153,7 @@ const getAllProducts = async (req, res) => {
   try {
     const { category } = req.query; // Extract category from query parameters
 
+
     // Define parameters for DynamoDB scan operation with optional category filter
     let params;
     if (category) {
@@ -225,7 +226,7 @@ const getProductByName = async (req, res) => {
     // Define parameters for DynamoDB scan operation
     const params = {
       TableName: process.env.DYNAMODB_TABLE_NAME_PRODUCTS,
-      FilterExpression: 'plantName = :name',
+      FilterExpression: 'begins_with(plantName, :name)',
       ExpressionAttributeValues: {
         ':name': plantName
       }
