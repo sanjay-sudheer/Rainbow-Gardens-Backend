@@ -26,7 +26,7 @@ router.post('/createproduct', upload.array('images'), productController.createPr
 router.get('/getproduct', productController.getAllProducts);
 router.get('/getplantname/:plantName', productController.getProductByName);
 router.get('/getproduct/:Pno', productController.getProductByPno);
-router.put('/updateproducts/:Pno', productController.updateProduct);
+router.put('/updateproducts/:Pno',upload.array('images'), productController.updateProduct);
 router.delete('/deleteproducts/:Pno', productController.deleteProduct);
 
 

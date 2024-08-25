@@ -80,6 +80,73 @@ const createProduct = async (req, res) => {
   }
 };
 
+const updateProduct = async (req, res) => {
+  try {
+    // Extract the Pno from the request parameters
+    const { Pno } = req.params;
+
+    // Extract updated product details from the request body
+    const { plantName, plantSmallDescription, plantPrice, plantLongDescription, plantDescriptionForCard, category } = req.body;
+
+    // Handle image upload if new images are provided
+    let imageUrls = [];
+    if (req.files && req.files.length > 0) {
+      imageUrls = await uploadImages(req.files);
+    }
+
+    // Log the incoming data
+    console.log("Updating product with Pno:", Pno);
+    console.log("Update data:", {
+      plantName,
+      plantSmallDescription,
+      plantPrice,
+      plantLongDescription,
+      plantDescriptionForCard,
+      category,
+      images: imageUrls
+    });
+
+    // Define the update expression and attribute values
+    let updateExpression = 'set plantName = :n, plantSmallDescription = :sd, plantPrice = :p, plantLongDescription = :ld, plantDescriptionForCard = :dc, category = :cat';
+    const expressionAttributeValues = {
+      ':n': plantName,
+      ':sd': plantSmallDescription,
+      ':p': plantPrice,
+      ':ld': plantLongDescription,
+      ':dc': plantDescriptionForCard,
+      ':cat': category
+    };
+
+    // Add image URLs to the update expression if new images were uploaded
+    if (imageUrls.length > 0) {
+      updateExpression += ', images = :img';
+      expressionAttributeValues[':img'] = imageUrls;
+    }
+
+    // Define parameters for the DynamoDB update operation
+    const params = {
+      TableName: process.env.DYNAMODB_TABLE_NAME_PRODUCTS,
+      Key: {
+        Pno: Pno
+      },
+      UpdateExpression: updateExpression,
+      ExpressionAttributeValues: expressionAttributeValues,
+      ReturnValues: 'UPDATED_NEW'
+    };
+
+    // Perform the update operation on DynamoDB
+    const data = await dynamoDB.update(params).promise();
+
+    // Return the updated product as a JSON response
+    res.status(200).json({ message: 'Product updated successfully', updatedProduct: data.Attributes });
+  } catch (error) {
+    console.error('Error updating product:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+
+
 
 //get API
 const getAllProducts = async (req, res) => {
@@ -165,48 +232,6 @@ const getProductByName = async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
-
-
-
-
-  //update product details
-  const updateProduct = async (req, res) => {
-    try {
-      // Extract the Pno from the request parameters
-      const { Pno } = req.params;
-  
-      // Extract updated product details from the request body
-      const { plantName, plantSmallDescription, plantPrice, plantLongDescription, plantDescriptionForCard } = req.body;
-  
-      // Define parameters for the DynamoDB update operation
-      const params = {
-        TableName: process.env.DYNAMODB_TABLE_NAME_PRODUCTS,
-        Key: {
-          Pno: Pno
-        },
-        UpdateExpression: 'set plantName = :n, plantSmallDescription = :sd, plantPrice = :p, plantLongDescription = :ld, plantDescriptionForCard = :dc',
-        ExpressionAttributeValues: {
-          ':n': plantName,
-          ':sd': plantSmallDescription,
-          ':p': plantPrice,
-          ':ld': plantLongDescription,
-          ':dc': plantDescriptionForCard
-        },
-        ReturnValues: 'UPDATED_NEW'
-      };
-  
-      // Perform the update operation on DynamoDB
-      const data = await dynamoDB.update(params).promise();
-  
-      // Return the updated product as a JSON response
-      res.status(200).json(data.Attributes);
-    } catch (error) {
-      console.error('Error updating product:', error);
-      res.status(500).json({ error: 'Internal Server Error' });
-    }
-  };
-  
-
 
   //Delete a product 
   const deleteProduct = async (req, res) => {
