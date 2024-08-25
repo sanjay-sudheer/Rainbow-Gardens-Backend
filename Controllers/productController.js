@@ -151,23 +151,25 @@ const updateProduct = async (req, res) => {
 //get API
 const getAllProducts = async (req, res) => {
   try {
-    // Extract the category from the query parameters
-    const { category } = req.query;
+    const { category } = req.query; // Extract category from query parameters
 
-    // Define the initial params object for the DynamoDB scan operation
-    let params = {
-      TableName: process.env.DYNAMODB_TABLE_NAME_PRODUCTS,
-    };
-
-    // If a category is provided, add a FilterExpression to the params
+    // Define parameters for DynamoDB scan operation with optional category filter
+    let params;
     if (category) {
-      params.FilterExpression = 'category = :cat';
-      params.ExpressionAttributeValues = {
-        ':cat': category,
+      params = {
+        TableName: process.env.DYNAMODB_TABLE_NAME_PRODUCTS,
+        FilterExpression: "category = :category",
+        ExpressionAttributeValues: {
+          ":category": category,
+        },
+      };
+    } else {
+      params = {
+        TableName: process.env.DYNAMODB_TABLE_NAME_PRODUCTS,
       };
     }
 
-    // Retrieve items from the DynamoDB table based on the params
+    // Retrieve all items from the DynamoDB table
     const data = await dynamoDB.scan(params).promise();
 
     // Extract the items from the response
@@ -176,12 +178,10 @@ const getAllProducts = async (req, res) => {
     // Return the products as a JSON response
     res.status(200).json(products);
   } catch (error) {
-    console.error('Error fetching products:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    console.error("Error fetching products:", error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
-
-
 
 
   //get product using Pno Number
