@@ -44,7 +44,7 @@ router.post('/signup', loginController.signup);
 
 
 // Authentication using email
-router.post('/send-verification-email', authController.sendVerificationEmail);
-router.post('/verify-code', authController.storeEmailAndVerifyCode);
+router.post('/send-verification-email', authController.initiatePasswordReset);
+router.post('/verify-code', authController.resetPassword);
 
 module.exports = router;

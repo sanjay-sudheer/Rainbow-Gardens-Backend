@@ -1,6 +1,7 @@
 const AWS = require('aws-sdk');
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
 const nodemailer = require('nodemailer');
+const bcrypt = require('bcrypt');
 
 AWS.config.update({
   region: process.env.AWS_REGION,
@@ -9,119 +10,134 @@ AWS.config.update({
 });
 
 const generateRandomCode = () => {
-  // Generate a random 6-digit code as a string
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-// Function to check if email exists in DynamoDB
-const checkEmailExists = async (email) => {
-  try {
-    const params = {
-      TableName: process.env.DYNAMODB_TABLE_NAME_AUTH,
-      Key: {
-        email: email,
-      },
-    };
-
-    const data = await dynamoDB.get(params).promise();
-
-    return !!data.Item; // Returns true if email exists, false otherwise
-  } catch (error) {
-    console.error('Error checking if email exists:', error);
-    throw error;
-  }
-};
-
-// Function to send email with verification code
 const sendVerificationCode = async (email) => {
-  try {
-    const code = generateRandomCode();
+  const code = generateRandomCode();
 
-    // Create Nodemailer transporter
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USERNAME,
-        pass: process.env.EMAIL_PASSWORD,
-      },
-    });
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USERNAME,
+      pass: process.env.EMAIL_PASSWORD,
+    },
+  });
 
-    // Email content
-    const mailOptions = {
-      from: process.env.EMAIL_USERNAME,
-      to: email,
-      subject: 'Verification Code for Your Account',
-      text: `Your verification code is: ${code}`,
-    };
+  const mailOptions = {
+    from: process.env.EMAIL_USERNAME,
+    to: email,
+    subject: 'Password Reset Verification Code',
+    text: `Your password reset verification code is: ${code}`,
+  };
 
-    // Send the email
-    await transporter.sendMail(mailOptions);
-
-    return code; // Return the verification code
-  } catch (error) {
-    console.error('Error sending verification email:', error);
-    throw error;
-  }
+  await transporter.sendMail(mailOptions);
+  return code;
 };
 
-// API endpoint to send verification code to the provided email
-const sendVerificationEmail = async (req, res) => {
+const storeResetCode = async (email, resetCode) => {
+  const params = {
+    TableName: process.env.DYNAMODB_TABLE_NAME_AUTH,
+    Item: {
+      email: email,
+      resetCode: resetCode,
+      expirationTime: Math.floor(Date.now() / 1000) + 600 // 10 minutes expiration
+    },
+  };
+
+  await dynamoDB.put(params).promise();
+};
+
+const verifyResetCode = async (email, providedCode) => {
+  const params = {
+    TableName: process.env.DYNAMODB_TABLE_NAME_AUTH,
+    Key: {
+      email: email,
+    },
+  };
+
+  const result = await dynamoDB.get(params).promise();
+  const storedData = result.Item;
+
+  if (!storedData || storedData.resetCode !== providedCode) {
+    return false;
+  }
+
+  if (storedData.expirationTime < Math.floor(Date.now() / 1000)) {
+    return false; // Code has expired
+  }
+
+  return true;
+};
+
+const getUserByEmail = async (email) => {
+  const params = {
+    TableName: process.env.DYNAMODB_TABLE_NAME_USERS,
+    Key: {
+      email: email,
+    },
+  };
+
+  const result = await dynamoDB.get(params).promise();
+  return result.Item;
+};
+
+const initiatePasswordReset = async (req, res) => {
   try {
     const { email } = req.body;
 
-    // Check if the email already exists in the DynamoDB table
-    const emailExists = await checkEmailExists(email);
-
-    if (emailExists) {
-      return res.status(200).json({ message: 'User already exists' });
+    const user = await getUserByEmail(email);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
 
-    // If the email does not exist, send the verification code
-    const verificationCode = await sendVerificationCode(email);
+    const resetCode = await sendVerificationCode(email);
+    await storeResetCode(email, resetCode);
 
-    res.status(200).json({ message: 'Verification code sent successfully', verificationCode });
+    res.json({ message: "Password reset code sent to your email" });
   } catch (error) {
-    console.error('Error sending verification email:', error);
+    console.error('Error initiating password reset:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
 
-// Function to store email ID and verification code in DynamoDB
-const storeEmailAndVerificationCodeInDB = async (email, verificationCode) => {
+const resetPassword = async (req, res) => {
   try {
+    const { email, resetCode, newPassword } = req.body;
+
+    const isCodeValid = await verifyResetCode(email, resetCode);
+    if (!isCodeValid) {
+      return res.status(400).json({ message: "Invalid or expired reset code" });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
     const params = {
-      TableName: process.env.DYNAMODB_TABLE_NAME_AUTH,
-      Item: {
-        Eno: generateRandomCode(), // Generate Eno
-        email: email,
-        verificationCode: verificationCode,
+      TableName: process.env.DYNAMODB_TABLE_NAME_USERS,
+      Key: {
+        email,
+      },
+      UpdateExpression: "set password = :password",
+      ExpressionAttributeValues: {
+        ":password": hashedPassword,
       },
     };
+    await dynamoDB.update(params).promise();
 
-    await dynamoDB.put(params).promise();
+    // Remove the reset code from the auth table
+    const deleteParams = {
+      TableName: process.env.DYNAMODB_TABLE_NAME_AUTH,
+      Key: {
+        email,
+      },
+    };
+    await dynamoDB.delete(deleteParams).promise();
+
+    res.json({ message: "Password updated successfully" });
   } catch (error) {
-    console.error('Error storing email and verification code in DynamoDB:', error);
-    throw error;
-  }
-};
-
-// API endpoint to verify the provided code and store the email in DynamoDB
-const storeEmailAndVerifyCode = async (req, res) => {
-  try {
-    const { email, code } = req.body;
-
-    // Compare the provided code with the stored code
-    // For simplicity, let's assume the codes match
-    const verificationCode = code; // Assuming the verification code is passed in the request
-
-    // Store the email and verification code in DynamoDB
-    await storeEmailAndVerificationCodeInDB(email, verificationCode);
-
-    res.status(200).json({ message: 'Email stored in DynamoDB successfully' });
-  } catch (error) {
-    console.error('Error verifying code and storing email:', error);
+    console.error('Error resetting password:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
 
-module.exports = { sendVerificationEmail, storeEmailAndVerifyCode };
+module.exports = { initiatePasswordReset, resetPassword };
