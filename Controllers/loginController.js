@@ -2,6 +2,8 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const dynamoDB = require('../models/contact');
 const { v4: uuidv4 } = require('uuid');  // Import DynamoDB model
+const dotenv = require('dotenv');
+dotenv.config();
 
 async function signup(req, res) {
   try {
