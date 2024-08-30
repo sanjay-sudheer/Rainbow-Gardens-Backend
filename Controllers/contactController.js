@@ -1,5 +1,7 @@
 const dotenv = require('dotenv');
-const dynamoDB = require('../models/contact');
+const path = require('path');
+const dynamoDB = require(path.join(__dirname, '../models/contact'));
+
 dotenv.config();
 
 const createContact = async (req, res) => {
@@ -10,7 +12,7 @@ const createContact = async (req, res) => {
       TableName: process.env.DYNAMODB_TABLE_NAME_CONTACT,
       Item: {
         Sno: Sno,
-        firstName,
+        firstName, 
         lastName,
         email,
         mobileNumber,
