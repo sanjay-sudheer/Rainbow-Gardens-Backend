@@ -11,7 +11,7 @@ AWS.config.update({
 });
 
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
-const AUTH_TABLE_NAME = process.env.DYNAMODB_TABLE_NAME_AUTH;
+const AUTH_TABLE_NAME = process.env.DYNAMODB_TABLE_NAME_USERS;
 
 const authenticateJWT = async (req, res, next) => {
   const authHeader = req.headers.authorization;
