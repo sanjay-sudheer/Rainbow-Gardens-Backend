@@ -1,6 +1,6 @@
 const dotenv = require('dotenv');
-const dynamoDB = require('../models/contact.js');
 dotenv.config();
+const dynamoDB = require('../models/contact.js');
 
 const createContact = async (req, res) => {
   try {
