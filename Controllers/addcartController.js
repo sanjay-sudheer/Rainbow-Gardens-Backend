@@ -1,5 +1,5 @@
 const aws = require("aws-sdk");
-const dynamoDB = require('../models/contact'); // Ensure this is correctly pointing to your DynamoDB model
+const dynamoDB = require('../Models/contact'); // Ensure this is correctly pointing to your DynamoDB model
 
 aws.config.update({
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,

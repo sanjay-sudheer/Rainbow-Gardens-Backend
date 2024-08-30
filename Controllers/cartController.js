@@ -1,4 +1,4 @@
-const dynamoDB = require('../models/contact');
+const dynamoDB = require('../Models/contact');
 
 
 

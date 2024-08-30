@@ -4,13 +4,12 @@ const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
-const port = 3001;
+const port = process.env.PORT || 3001;
 
 // Middleware
 app.use(bodyParser.json());
 
-// CORS Middleware (place before route definitions)
-app.use(cors({ origin: 'http://localhost:3000' }));
+app.use(cors());
 
 // Routes
 const routes = require('./Routes/authRoutes');
