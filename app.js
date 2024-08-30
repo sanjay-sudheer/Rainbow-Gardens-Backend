@@ -9,8 +9,7 @@ const port = process.env.PORT || 3001;
 // Middleware
 app.use(bodyParser.json());
 
-// CORS Middleware (place before route definitions)
-app.use(cors({ origin: 'http://localhost:3000' }));
+app.use(cors());
 
 // Routes
 const routes = require('./Routes/authRoutes');
