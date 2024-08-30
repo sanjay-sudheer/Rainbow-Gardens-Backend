@@ -1,5 +1,5 @@
-const AWS = require('aws-sdk');
 require('dotenv').config();
+const AWS = require('aws-sdk');
 
 // Configure AWS
 AWS.config.update({
