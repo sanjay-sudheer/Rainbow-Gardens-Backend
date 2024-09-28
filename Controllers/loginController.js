@@ -29,7 +29,9 @@ async function signup(req, res) {
         unoNumber, // Store the generated Uno number with the user's details
       }
     };
-    await dynamoDB.put(params).promise();
+    await // The `.promise()` call might be on an JS SDK v2 client API.
+    // If yes, please remove .promise(). If not, remove this comment.
+    dynamoDB.put(params).promise();
 
     res.status(201).json({ message: "User registered successfully", unoNumber });
   } catch (error) {
@@ -79,7 +81,9 @@ async function getUserByEmail(email) {
       email,
     }
   };
-  const data = await dynamoDB.get(params).promise();
+  const data = await // The `.promise()` call might be on an JS SDK v2 client API.
+  // If yes, please remove .promise(). If not, remove this comment.
+  dynamoDB.get(params).promise();
   return data.Item;
 }
 

@@ -1,8 +1,20 @@
 const AWS = require('aws-sdk');
-const dynamoDB = new AWS.DynamoDB.DocumentClient();
+
+const {
+  DynamoDBDocument,
+} = require('@aws-sdk/lib-dynamodb');
+
+const {
+  DynamoDB,
+} = require('@aws-sdk/client-dynamodb');
+
+const dynamoDB = DynamoDBDocument.from(new DynamoDB());
 const nodemailer = require('nodemailer');
 const bcrypt = require('bcrypt');
 
+// JS SDK v3 does not support global configuration.
+// Codemod has attempted to pass values to each service client in this file.
+// You may need to update clients outside of this file, if they use global config.
 AWS.config.update({
   region: process.env.AWS_REGION,
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
@@ -45,7 +57,7 @@ const storeResetCode = async (email, resetCode) => {
     },
   };
 
-  await dynamoDB.put(params).promise();
+  await dynamoDB.put(params);
 };
 
 const verifyResetCode = async (email, providedCode) => {
@@ -56,7 +68,7 @@ const verifyResetCode = async (email, providedCode) => {
     },
   };
 
-  const result = await dynamoDB.get(params).promise();
+  const result = await dynamoDB.get(params);
   const storedData = result.Item;
 
   if (!storedData || storedData.resetCode !== providedCode) {
@@ -78,7 +90,7 @@ const getUserByEmail = async (email) => {
     },
   };
 
-  const result = await dynamoDB.get(params).promise();
+  const result = await dynamoDB.get(params);
   return result.Item;
 };
 
@@ -122,7 +134,7 @@ const resetPassword = async (req, res) => {
         ":password": hashedPassword,
       },
     };
-    await dynamoDB.update(params).promise();
+    await dynamoDB.update(params);
 
     // Remove the reset code from the auth table
     const deleteParams = {
@@ -131,7 +143,7 @@ const resetPassword = async (req, res) => {
         email,
       },
     };
-    await dynamoDB.delete(deleteParams).promise();
+    await dynamoDB.delete(deleteParams);
 
     res.json({ message: "Password updated successfully" });
   } catch (error) {

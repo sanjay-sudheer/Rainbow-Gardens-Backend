@@ -14,8 +14,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "^3.535.0",
-    "@aws-sdk/lib-dynamodb": "^3.535.0",
+    "@aws-sdk/client-dynamodb": "^3.658.1",
+    "@aws-sdk/lib-dynamodb": "^3.658.1",
     "aws-sdk": "^2.1582.0",
     "axios": "^1.6.8",
     "bcrypt": "^5.1.1",
