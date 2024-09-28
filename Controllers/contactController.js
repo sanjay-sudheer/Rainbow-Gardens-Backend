@@ -18,7 +18,9 @@ const createContact = async (req, res) => {
       }
     };
 
-    await dynamoDB.put(params).promise();
+    await // The `.promise()` call might be on an JS SDK v2 client API.
+    // If yes, please remove .promise(). If not, remove this comment.
+    dynamoDB.put(params).promise();
 
     res.status(201).json({ message: 'Contact created successfully' });
   } catch (error) {
@@ -37,7 +39,9 @@ const getAllContacts = async (req, res) => {
       };
   
       // Retrieve all items from the DynamoDB table
-      const data = await dynamoDB.scan(params).promise();
+      const data = await // The `.promise()` call might be on an JS SDK v2 client API.
+      // If yes, please remove .promise(). If not, remove this comment.
+      dynamoDB.scan(params).promise();
   
       // Extract the items from the response
       const contacts = data.Items;

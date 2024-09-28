@@ -11,7 +11,9 @@ const getPlantDetails = async (Pno) => {
   };
 
   try {
-    const { Item } = await dynamoDB.get(params).promise();
+    const { Item } = await // The `.promise()` call might be on an JS SDK v2 client API.
+    // If yes, please remove .promise(). If not, remove this comment.
+    dynamoDB.get(params).promise();
     return Item ? { plantName: Item.plantName, plantPrice: Item.plantPrice } : null;
   } catch (error) {
     console.error('Error fetching product details:', error);
@@ -52,7 +54,9 @@ const addToCart = async (req, res) => {
       },
     };
 
-    await dynamoDB.put(cartItem).promise();
+    await // The `.promise()` call might be on an JS SDK v2 client API.
+    // If yes, please remove .promise(). If not, remove this comment.
+    dynamoDB.put(cartItem).promise();
 
     res.status(201).json({ message: 'Item added to cart successfully', cartItem: cartItem.Item });
   } catch (error) {
@@ -69,7 +73,9 @@ const getAllCartItems = async (req, res) => {
     };
   
     try {
-      const data = await dynamoDB.scan(params).promise();
+      const data = await // The `.promise()` call might be on an JS SDK v2 client API.
+      // If yes, please remove .promise(). If not, remove this comment.
+      dynamoDB.scan(params).promise();
       res.status(200).json({ items: data.Items });
     } catch (error) {
       console.error('Error fetching cart items:', error);
